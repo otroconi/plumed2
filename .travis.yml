@@ -145,6 +145,7 @@ install:
       sudo pip install --upgrade pip ;
       sudo pip install numpy ;
       sudo pip install Cython ;
+      sudo pip install nose ;
     fi
 # then replace doxygen with the desided version
 # I use 1.8.10 instead of 1.8.11 since it looks like 1.8.11 have troubles with
@@ -228,6 +229,13 @@ script:
         sudo port install py${p//./}-nose ;
         nosetests-$p -v -w python ;
       done
+    fi
+  - if test "$PLUMED_CXX" ; then
+      if "$TRAVIS_OS_NAME" == "osx" ; then
+        PLUMED_KERNEL=$HOME/opt/lib/libplumedKernel.dylib nosetests -v -w python ;
+      else
+        PLUMED_KERNEL=$HOME/opt/lib/libplumedKernel.so nosetests -v -w python ;
+      fi ;
     fi
 
 # CPPCHECK:
