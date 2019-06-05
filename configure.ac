@@ -157,6 +157,44 @@ AC_DEFUN([PLUMED_CHECK_CXX_PACKAGE], [
 
 ##################################################################
 
+AC_ARG_PROGRAM
+
+# version modified to work in shell script instead of makefile:
+program_transform_name_sh=$(echo "${program_transform_name}" | sed 's:\$\$:$:g')
+program_name=$(echo plumed | sed "$program_transform_name_sh")
+AC_SUBST(program_name)
+
+if test "$(echo "$program_name" | tr '[A-Z]' '[a-z]')" != "$(echo "$program_name" | tr '[A-Z]' '[a-z]' | sed 's/wrapper$//')" ; then
+  AC_MSG_ERROR([$program_name is not a valid program name (should not terminate with Wrapper)])
+fi
+if test "$(echo "$program_name" | tr '[A-Z]' '[a-z]')" != "$(echo "$program_name" | tr '[A-Z]' '[a-z]' | sed 's/kernel$//')" ; then
+  AC_MSG_ERROR([$program_name is not a valid program name (should not terminate with Kernel)])
+fi
+if test "$(echo "$program_name" | tr '[A-Z]' '[a-z]')" != "$(echo "$program_name" | tr '[A-Z]' '[a-z]' | sed 's/-patch$//')" ; then
+  AC_MSG_ERROR([$program_name is not a valid program name (should not terminate with -patch)])
+fi
+if test "$(echo "$program_name" | tr '[A-Z]' '[a-z]')" != "$(echo "$program_name" | tr '[A-Z]' '[a-z]' | sed 's/-config$//')" ; then
+  AC_MSG_ERROR([$program_name is not a valid program name (should not terminate with -config)])
+fi
+
+PLUMED_EXTENSION=
+AC_SUBST(PLUMED_EXTENSION)
+
+AC_ARG_ENABLE([extension],
+  AS_HELP_STRING([--enable-extension], [extension name]),
+  [
+    if test "${enableval}" != no ; then
+       AC_MSG_NOTICE([Building an extension])
+       AC_MSG_WARN([This is an unstable feature!])
+       PLUMED_EXTENSION="${enableval}"
+       LIBS="$LIBS -L ${libdir} -l${program_name}Kernel"
+       CPPFLAGS="$CPPFLAGS -I \$(includedir)/${program_name}"
+    fi
+  ]
+  ,
+  []
+)
+
 AC_MSG_NOTICE([Optional modules are disabled by default])
 rm -f src/*.on src/*.off
 
@@ -1314,27 +1352,6 @@ else
 fi
 
 AC_SUBST(BASH_COMPLETION_DIR)
-
-AC_ARG_PROGRAM
-
-
-# version modified to work in shell script instead of makefile:
-program_transform_name_sh=$(echo "${program_transform_name}" | sed 's:\$\$:$:g')
-program_name=$(echo plumed | sed "$program_transform_name_sh")
-AC_SUBST(program_name)
-
-if test "$(echo "$program_name" | tr '[A-Z]' '[a-z]')" != "$(echo "$program_name" | tr '[A-Z]' '[a-z]' | sed 's/wrapper$//')" ; then
-  AC_MSG_ERROR([$program_name is not a valid program name (should not terminate with Wrapper)])
-fi
-if test "$(echo "$program_name" | tr '[A-Z]' '[a-z]')" != "$(echo "$program_name" | tr '[A-Z]' '[a-z]' | sed 's/kernel$//')" ; then
-  AC_MSG_ERROR([$program_name is not a valid program name (should not terminate with Kernel)])
-fi
-if test "$(echo "$program_name" | tr '[A-Z]' '[a-z]')" != "$(echo "$program_name" | tr '[A-Z]' '[a-z]' | sed 's/-patch$//')" ; then
-  AC_MSG_ERROR([$program_name is not a valid program name (should not terminate with -patch)])
-fi
-if test "$(echo "$program_name" | tr '[A-Z]' '[a-z]')" != "$(echo "$program_name" | tr '[A-Z]' '[a-z]' | sed 's/-config$//')" ; then
-  AC_MSG_ERROR([$program_name is not a valid program name (should not terminate with -config)])
-fi
 
 AC_MSG_NOTICE([**** PLUMED will be installed using the following paths:])
 AC_MSG_NOTICE([**** prefix: $prefix])

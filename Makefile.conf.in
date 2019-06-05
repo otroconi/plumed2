@@ -42,3 +42,4 @@ make_static_archive=@make_static_archive@
 use_absolute_soname=@use_absolute_soname@
 use_loader_path=@use_loader_path@
 BASH_COMPLETION_DIR=@BASH_COMPLETION_DIR@
+PLUMED_EXTENSION=@PLUMED_EXTENSION@
