@@ -141,6 +141,14 @@ PlumedMain::PlumedMain():
   novirial(false),
   detailedTimers(false)
 {
+
+  // load extensions.
+  // notice that extensions should be loaded here and cannot be loaded
+  // in PlumedMainInitializers otherwise there is a segfault when unloading them
+  // (I did not really understand why)
+  // GB
+  dlloader.autoload();
+
   log.link(comm);
   log.setLinePrefix("PLUMED: ");
 }
