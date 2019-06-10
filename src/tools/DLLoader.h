@@ -55,6 +55,10 @@ public:
   const std::string & error();
 /// Returns true if the dynamic loader is available (on some systems it may not).
   static bool installed();
+/// Autoload extensions.
+/// Use to load libraries placed in plumedroot/autoload.
+/// Libraries are unloaded when this object is destroyed.
+  void autoload();
 };
 
 }
