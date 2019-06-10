@@ -33,8 +33,48 @@ else
   SONAME_INSTALL_PATH=
 endif
 
+# when calling install-build, libraries in install should be built.
+# PLUMED_NAME is just set to $(program_name) instead of plumed
+# this allows setting the correct names for the to be installed libraries
+ifeq ($(PLUMED_INSTALL),Install)
+  PLUMED_LIBDIR:=install/
+  PLUMED_NAME=$(program_name)
+else
+  PLUMED_LIBDIR:=
+  PLUMED_NAME=plumed
+endif
+
 # if machine dependent configuration has been found:
 ifdef GCCDEP
+
+ifdef PLUMED_EXTENSION
+
+# here we build the list of modules to be linked in plumedKernel
+EXTENSION_MODULES := $(addprefix ../,$(shell ../maketools/find_modules.sh --extension))
+DIRS := $(sort $(EXTENSION_MODULES))
+SRC_EXTENSION := $(shell for dir in $(EXTENSION_MODULES) ; do ls $$dir/*.cpp 2>/dev/null ; ls $$dir/*.c 2>/dev/null ; done)
+OBJ_EXTENSION:=$(SRC_EXTENSION:.cpp=.o)
+
+all:
+	$(MAKE) dirslinks
+	$(MAKE) dirs
+	$(MAKE) lib
+
+lib: lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT)
+
+lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT): $(OBJ_EXTENSION)
+	$(LDSHARED) -o $@ $^ $(SONAME_OPTION),"$(libdir)$@" $(DYNAMIC_LIBS)
+ifeq ($(use_loader_path),yes)
+# this only does something is extension is loaded in the same prefix as kernel
+	install_name_tool -change "$(libdir)/lib${program_name}Kernel.$(SOEXT)" "@loader_path/lib${program_name}Kernel.$(SOEXT)" $@
+endif
+
+install:
+	mkdir -p "$(DESTDIR)$(libdir)/$(program_name)/autoload"
+	cp lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT) "$(DESTDIR)$(libdir)/"
+	cd "$(DESTDIR)$(libdir)/$(program_name)/autoload" && ln -fs "../../lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT)"
+
+else
 
 # source for plumed wrapper
 SRC_WRAPPER=../wrapper/PlumedStatic.cpp
@@ -57,17 +97,6 @@ OBJ_MAIN := $(SRC_MAIN:.cpp=.o)
 XXX := $(SRC_KERNEL:.cpp=.o)
 OBJ_KERNEL := $(XXX:.c=.o)
 ALL_OBJ := $(OBJ_KERNEL) $(OBJ_WRAPPER) $(OBJ_DYNAMIC_WRAPPER) $(OBJ_MAIN)
-
-# when calling install-build, libraries in install should be built.
-# PLUMED_NAME is just set to $(program_name) instead of plumed
-# this allows setting the correct names for the to be installed libraries
-ifeq ($(PLUMED_INSTALL),Install)
-  PLUMED_LIBDIR:=install/
-  PLUMED_NAME=$(program_name)
-else
-  PLUMED_LIBDIR:=
-  PLUMED_NAME=plumed
-endif
 
 # plumed kernel
 PLUMED_KERNEL := $(PLUMED_LIBDIR)lib$(PLUMED_NAME)Kernel.$(SOEXT)
@@ -105,7 +134,7 @@ ifneq ($(dir $(bindir)),$(dir $(libdir)))
   $(error bindir and libdir are not consistent, please set them as subdirectories of the same directory)
 endif
 
-.PHONY: all links $(DIRS) $(DIRSLINKS) all-static $(PLUMED_LIBDIR)Plumed.cmake $(PLUMED_LIBDIR)Plumed.inc install $(PLUMED_SCRIPTS_EXE) install-html
+.PHONY: all-static $(PLUMED_LIBDIR)Plumed.cmake $(PLUMED_LIBDIR)Plumed.inc $(PLUMED_SCRIPTS_EXE) install-html
 all:
 	$(MAKE) dirslinks
 	$(MAKE) dirs
@@ -122,10 +151,6 @@ endif
 ifeq ($(SOEXT),dylib)
   LIBS_PLUMED_KERNEL=-l$(program_name)Kernel
 endif
-
-dirs:
-	@echo "*** Compiling all directories ***"
-	$(MAKE) $(DIRS)
 
 install-build:
 	mkdir -p install/
@@ -418,9 +443,6 @@ uninstall:
 	rm -f "$(DESTDIR)$(libdir)/lib$(program_name)Kernel.$(SOEXT)"
 	rm -f "$(DESTDIR)$(libdir)/lib/pkgconfig/$(program_name).pc"
 
-$(DIRS):
-	$(MAKE) -C $@ obj
-
 .PHONY: lib lib-static lib-shared lib-install lib-static-install
 
 lib: lib-static lib-shared
@@ -571,6 +593,8 @@ $(PLUMED_LIBDIR)Plumed.cmake.shared: $(PLUMED_LIBDIR)Plumed.cmake
 
 -include $(ALL_DEP)
 
+endif
+
 # if machine dependent configuration has not been found:
 else
 
@@ -580,9 +604,14 @@ error:
 	@echo First run ./configure in the root directory
 endif
 
+.PHONY: all links $(DIRS) $(DIRSLINKS) install
+
+$(DIRS):
+	$(MAKE) -C $@ obj
+
 # these targets are available anyway
 
-.PHONY: clean dirslinks
+.PHONY: clean dirs dirslinks
 clean:
 	rm -f $(CLEANLIST)
 	rm -f plumed Plumed.inc* plumed-* Plumed.cmake*
@@ -591,6 +620,10 @@ clean:
 	rm -f plumed.vim
 	rm -f .lib*
 	rm -fr install/
+
+dirs:
+	@echo "*** Compiling all directories ***"
+	$(MAKE) $(DIRS)
 
 dirslinks:
 	@echo "*** Updating links to used modules in all directories ***"
