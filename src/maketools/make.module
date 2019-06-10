@@ -72,7 +72,11 @@ clean:
 # build links for this module
 links: Makefile
 	@echo Verify modules and create links in $(CURDIR)
+ifdef PLUMED_EXTENSION
+	@for dir in $(USE) ; do ../maketools/makelinks.sh $$dir ;  done
+else
 	@for dir in $(USE) ; do ../maketools/check_module.sh $$dir ; ../maketools/makelinks.sh $$dir ;  done
+endif
 
 .PHONY: cppcheck
 cppcheck:
