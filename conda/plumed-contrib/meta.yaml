@@ -1,4 +1,4 @@
-{% set name = "plumed" %}
+{% set name = "plumed-config" %}
 {% set version = environ['VERSION'] %}
 
 package:
