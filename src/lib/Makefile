@@ -63,7 +63,11 @@ all:
 lib: lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT)
 
 lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT): $(OBJ_EXTENSION)
-	$(LDSHARED) -o $@ $^ $(SONAME_OPTION),"$(libdir)$@" $(DYNAMIC_LIBS)
+ifeq ($(use_absolute_soname),yes)
+	$(LDSHARED) -o $@ $^ $(SONAME_OPTION),"$(libdir)/$@" $(DYNAMIC_LIBS)
+else
+	$(LDSHARED) -o $@ $^ $(SONAME_OPTION),"$@" $(DYNAMIC_LIBS)
+endif
 ifeq ($(use_loader_path),yes)
 # this only does something is extension is loaded in the same prefix as kernel
 	install_name_tool -change "$(libdir)/lib${program_name}Kernel.$(SOEXT)" "@loader_path/lib${program_name}Kernel.$(SOEXT)" $@
