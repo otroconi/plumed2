@@ -10,11 +10,6 @@ script=""
 includedir=
 dirs=$*
 
-for dir in $dirs
-do
-script="$script"'
-s|^# *include *"'$dir'/|#include "../'$dir'/|'
-done
 export LC_ALL=C
 
 for dir in $dirs
@@ -23,7 +18,7 @@ for file in $dir/*.h
 do
   if test -e $file ; then
     mkdir -p "$where/${file%/*}"
-    cat $file | sed "$script" > "$where/$file"
+    awk '/^# *include *"[a-z][a-z]*\//{sub("^# *include *\"","#include \"../")}{print}' $file > "$where/$file"
   fi
 done
 done
