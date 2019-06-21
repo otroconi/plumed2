@@ -195,6 +195,11 @@ echo "let b:plumedDictionary[\"$action_name\"]=[$dictionary]"
 done
 
 cat << \EOF
+
+for s:file in split(globpath(s:path . "/syntax/plumed/autoload/" , '*') ,'\n')
+  exec "source " . s:file
+endfor
+
 function! PlumedDefineSyntax()
 
   for key in sort(keys(b:plumedDictionary))
