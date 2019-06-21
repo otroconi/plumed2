@@ -74,6 +74,7 @@ ifeq ($(use_loader_path),yes)
 endif
 
 install:
+	$(MAKE) install-headers
 	mkdir -p "$(DESTDIR)$(libdir)/$(program_name)/autoload"
 	cp lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT) "$(DESTDIR)$(libdir)/"
 	cd "$(DESTDIR)$(libdir)/$(program_name)/autoload" && ln -fs "../../lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT)"
