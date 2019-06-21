@@ -31,8 +31,8 @@ requirements:
     - boost-cpp
     - plumed {{ version }}
   run:
-    - {{ pin_subpackage('boost-cpp',exact=True) }}
-    - {{ pin_subpackage('plumed',exact=True) }}
+    - {{ pin_compatible('boost-cpp') }}
+    - plumed {{ version }}
 
 test:
   commands:
