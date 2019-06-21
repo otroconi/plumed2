@@ -27,7 +27,6 @@ export CPU_COUNT=4
 
 conda-build -c conda-forge plumed
 conda-build -c conda-forge py-plumed
-conda-build -c conda-forge plumed-contrib
 
 ls -l $CONDA_HOME/conda-bld/
 ls -l $CONDA_HOME/conda-bld/$TRAVIS_OS_NAME-64

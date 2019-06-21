@@ -15,32 +15,62 @@ build:
 # with dlopen. There is no need for pinning thus.
 # Programs linking libplumed.so should pin to min_pin='x.x', max_pin='x'.
 # Programs linking libplumedKernel.so should pin to min_pin='x.x.x'. max_pin='x.x.x'.
+  script: echo do nothing
 
-requirements:
-  build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
+outputs:
+  - name: plumed
+    script: build_plumed.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
 # xxd is provided by package vim and used during build
-    - vim  # [linux]
-  host:
-    - gsl
-    - libblas
-    - liblapack
-    - xdrfile
-    - zlib
+        - vim  # [linux]
+      host:
+        - gsl
+        - libblas
+        - liblapack
+        - xdrfile
+        - zlib
 
-test:
-  commands:
-    - plumed info --root
-    - plumed info --long-version
-    - plumed-patch -h
-    - plumed config has external_blas external_lapack gsl xdrfile zlib
-    - $PREFIX/lib/plumed/plumed-runtime -h
-    - test -f $PREFIX/lib/libplumed$SHLIB_EXT
-    - test -f $PREFIX/lib/libplumedWrapper.a
-    - test -f $PREFIX/lib/libplumedKernel$SHLIB_EXT
-    - conda inspect linkages -p $PREFIX $PKG_NAME
-    - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
+    test:
+      commands:
+        - plumed info --root
+        - plumed info --long-version
+        - plumed-patch -h
+        - plumed config has external_blas external_lapack gsl xdrfile zlib
+        - $PREFIX/lib/plumed/plumed-runtime -h
+        - test -f $PREFIX/lib/libplumed$SHLIB_EXT
+        - test -f $PREFIX/lib/libplumedWrapper.a
+        - test -f $PREFIX/lib/libplumedKernel$SHLIB_EXT
+        - conda inspect linkages -p $PREFIX $PKG_NAME
+        - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
+    
+  - name: plumed-contrib
+    script: build_plumed_contrib.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+    # xxd is provided by package vim and used during build
+        - vim  # [linux]
+      host:
+        - gsl
+        - libblas
+        - liblapack
+        - xdrfile
+        - zlib
+        - boost-cpp
+        - plumed {{ version }}
+      run:
+        - {{ pin_compatible('boost-cpp') }}
+        - {{ pin_subpackage('plumed', exact=True) }}
+    
+    test:
+      commands:
+        - conda inspect linkages -p $PREFIX $PKG_NAME
+        - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
+        - plumed manual --action || true
 
 about:
   home: http://www.plumed.org/
