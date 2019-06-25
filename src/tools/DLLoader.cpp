@@ -81,11 +81,13 @@ void DLLoader::autoload() {
   auto debug=std::getenv("PLUMED_LOAD_DEBUG");
   auto files=Tools::ls(config::getPlumedRoot() + "/autoload/");
   for(auto & file : files) {
-    auto lib=config::getPlumedRoot() + "/autoload/" + file;
-    if(debug) fprintf(stderr,"+++ Loading extension at %s\n", lib.c_str());
-    if(!load(lib)) {
-      fprintf(stderr,"+++ Error loading extension at %s\n", lib.c_str());
-      fprintf(stderr,"+++ Message from dlopen %s\n", error().c_str());
+    if(Tools::startWith(file,"lib")) {
+      auto lib=config::getPlumedRoot() + "/autoload/" + file;
+      if(debug) fprintf(stderr,"+++ Loading extension at %s\n", lib.c_str());
+      if(!load(lib)) {
+        fprintf(stderr,"+++ Error loading extension at %s\n", lib.c_str());
+        fprintf(stderr,"+++ Message from dlopen %s\n", error().c_str());
+      }
     }
   }
 }
