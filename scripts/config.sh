@@ -78,8 +78,8 @@ case $action in
   do
   
   ff=$(
-    cat "$configfile" |
-    awk -v action="$action" -v check="$check" '{ if($1==action && $2==check){ print $3;exit } }'
+    echo "$configfile" |
+    awk -v action="$action" -v check="$check" '{ if($1==action && $2==check) show=$3} END{if(show) print show }'
   )
   
   if test "$ff" = on ; then
