@@ -29,7 +29,12 @@ Check if plumed as module colvar active
 # notice that the relative path of config.txt is also
 # hardcoded in a comment written in the log from src/core/PlumedMain.cpp
 # if you change it here, also change it there!
-configfile="$PLUMED_ROOT"/src/config/config.txt
+configfile="$(
+  cat "$PLUMED_ROOT"/src/config/config.txt
+  for file in "$PLUMED_ROOT"/autoload/extension.* ; do
+    test -f "$file" && cat "$file"
+  done
+)"
 
 quiet=no
 list=no
@@ -49,7 +54,7 @@ do
   (--quiet|-q) quiet=yes ;;
   (--version|-v) action=version ;;
   (show)
-    cat "$configfile"
+    echo "$configfile"
     exit 0
     ;;
   (has) action=has ;;
@@ -57,7 +62,7 @@ do
   (python_bin) action=python_bin ;;
   (mpiexec) action=mpiexec ;;
   (makefile_conf)
-    cat "$configfile" | awk '{if($1=="makefile_conf") { gsub("^makefile_conf ",""); print} }'
+    echo "$configfile" | awk '{if($1=="makefile_conf") { gsub("^makefile_conf ",""); print} }'
     exit 0
     ;;
   (*)
@@ -97,12 +102,12 @@ case $action in
   exit $retval
  ;;
 (version)
-  long=$(cat "$configfile" | grep -v \# | awk '{ if($1=="version" && $2=="long") print $3 }')
-  git=$(cat "$configfile" | grep -v \# | awk '{ if($1=="version" && $2=="git") print $3 }')
+  long=$(echo "$configfile" | grep -v \# | awk '{ if($1=="version" && $2=="long") print $3 }')
+  git=$(echo "$configfile" | grep -v \# | awk '{ if($1=="version" && $2=="git") print $3 }')
   echo "Version: $long (git: $git)"
  ;;
 (python_bin)
-  py=$(cat "$configfile" | grep -v \# | awk '{ if($1=="python_bin") print $2 }')
+  py=$(echo "$configfile" | grep -v \# | awk '{ if($1=="python_bin") print $2 }')
   if test -n "$py" ; then
     retval=0
     test "$quiet" = no && echo "$py"
@@ -113,7 +118,7 @@ case $action in
   exit $retval
 ;;
 (mpiexec)
-  mpi=$(cat "$configfile" | grep -v \# | awk '{ if($1=="mpiexec") print $2 }')
+  mpi=$(echo "$configfile" | grep -v \# | awk '{ if($1=="mpiexec") print $2 }')
   if test -n "$mpi" ; then
     retval=0
     test "$quiet" = no && echo "$mpi"
