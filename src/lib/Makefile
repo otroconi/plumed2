@@ -78,6 +78,7 @@ install:
 	mkdir -p "$(DESTDIR)$(libdir)/$(program_name)/autoload"
 	cp lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT) "$(DESTDIR)$(libdir)/"
 	cd "$(DESTDIR)$(libdir)/$(program_name)/autoload" && ln -fs "../../lib$(program_name)Extension-$(PLUMED_EXTENSION).$(SOEXT)"
+	for mod in $(shell ../maketools/find_modules.sh --extension); do echo "module $$mod on" ; done > "$(DESTDIR)$(libdir)/$(program_name)/autoload/extension.$(PLUMED_EXTENSION)"
 
 else
 
