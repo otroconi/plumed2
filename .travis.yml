@@ -185,6 +185,11 @@ install:
       ./macports-ci localports macports ;
       ./macports-ci ccache ;
     fi
+  - if test "$PLUMED_CONDA" == yes ; then
+      curl -LO https://raw.githubusercontent.com/GiovanniBussi/conda-ci/master/conda-ci ;
+      source ./conda-ci install --prefix $HOME/conda ;
+      source ./conda-ci install-conda-build ;
+    fi
 script:
 # make sure all modules are enabled
   - CONFIG_FLAGS="$CONFIG_FLAGS --enable-modules=all"
