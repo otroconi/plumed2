@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 CONDA_USER=plumed  # the conda channel
 if test -n "$TRAVIS_REPO_SLUG" ; then
   CONDA_USER="${TRAVIS_REPO_SLUG%/*}"

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 export CPU_COUNT=4
 
 conda-build -c conda-forge plumed
