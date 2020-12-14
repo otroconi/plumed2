@@ -24,7 +24,7 @@ export LIBS="-lboost_serialization $LIBS"
 # --disable-static-patch avoid tests that are only required for static patches
 # --disable-static-archive makes package smaller
 ./configure --prefix=$PREFIX --disable-python --disable-libsearch --disable-static-patch --disable-static-archive --enable-asmjit \
-  --enable-boost-serialization --enable-modules=none+adjmat+crystallization+dimred+drr+eds+logmfd+manyrestraints+maze+pamm+piv+ves \
+  --enable-boost-serialization --enable-modules=none+adjmat+annfunc+crystallization+dimred+drr+eds+fisst+funnel+logmfd+manyrestraints+maze+opes+pamm+piv+ves \
   --enable-extension=contrib
 
 make -j${CPU_COUNT}
