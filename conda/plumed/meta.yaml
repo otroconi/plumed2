@@ -53,8 +53,31 @@ outputs:
         - conda inspect linkages -p $PREFIX $PKG_NAME
         - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
     
-  - name: plumed-contrib
-    script: build_plumed_contrib.sh
+  - name: plumed-ves
+    script: build_plumed_contrib.sh ves
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+    # xxd is provided by package vim and used during build
+        - vim  # [linux]
+      host:
+        - gsl
+        - libblas
+        - liblapack
+        - xdrfile
+        - zlib
+        - {{ pin_subpackage('plumed', exact=True) }}
+      run:
+        - {{ pin_subpackage('plumed', exact=True) }}
+    test:
+      commands:
+        - conda inspect linkages -p $PREFIX $PKG_NAME
+        - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
+        - plumed manual --action || true
+    
+  - name: plumed-drr
+    script: build_plumed_contrib.sh drr
     requirements:
       build:
         - {{ compiler('c') }}
@@ -72,7 +95,6 @@ outputs:
       run:
         - {{ pin_compatible('boost-cpp', min_pin='x.x.x', max_pin='x.x.x') }}
         - {{ pin_subpackage('plumed', exact=True) }}
-    
     test:
       commands:
         - conda inspect linkages -p $PREFIX $PKG_NAME
