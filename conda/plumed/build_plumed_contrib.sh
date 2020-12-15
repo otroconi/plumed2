@@ -14,7 +14,7 @@ fi
 export CXXFLAGS="${CXXFLAGS//-O2/-O3}"
 
 # libraries are explicitly listed here due to --disable-libsearch
-export LIBS="-lgsl -lgslcblas -llapack -lblas -lxdrfile -lz $LIBS"
+export LIBS="-lfftw3 -lgsl -lgslcblas -llapack -lblas -lxdrfile -lz $LIBS"
 
 # extra libraries
 export LIBS="-lboost_serialization $LIBS"
@@ -23,6 +23,7 @@ export LIBS="-lboost_serialization $LIBS"
 # --disable-libsearch forces to link only explicitely requested libraries
 # --disable-static-patch avoid tests that are only required for static patches
 # --disable-static-archive makes package smaller
+# --enable-asmjit enables bundled asmjit implementation
 ./configure --prefix=$PREFIX --disable-python --disable-libsearch --disable-static-patch --disable-static-archive --enable-asmjit \
   --enable-boost-serialization --enable-modules=none+adjmat+annfunc+crystallization+dimred+drr+eds+fisst+funnel+logmfd+manyrestraints+maze+opes+pamm+piv+ves \
   --enable-extension=contrib
