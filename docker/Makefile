@@ -1,11 +1,14 @@
 
-.PHONY: ubuntu plumed2.tgz clean
+.PHONY: ubuntu plumed2.tgz intel clean
 
 ubuntu: plumed2.tgz
 	docker build -t plumed .
 
 centos7: plumed2.tgz
 	docker build -t plumed -f centos7 .
+
+intel: plumed2.tgz
+	docker build -t plumed -f intel .
 
 plumed2.tgz:
 	cd ../ ; git archive HEAD -o "$(CURDIR)"/plumed2.tgz --prefix plumed2/ ; cd -
