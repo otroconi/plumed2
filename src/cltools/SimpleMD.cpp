@@ -24,6 +24,7 @@
 #include "core/PlumedMain.h"
 #include "tools/Vector.h"
 #include "tools/Random.h"
+#include "tools/OpenMP.h"
 #include <string>
 #include <cstdio>
 #include <cmath>
@@ -259,6 +260,7 @@ private:
                     vector<vector<int> >& list) {
     double listcutoff2=listcutoff*listcutoff; // squared list cutoff
     list.assign(natoms,vector<int>());
+#   pragma omp parallel for num_threads(OpenMP::getNumThreads()) schedule(static,1)
     for(int iatom=0; iatom<natoms-1; iatom++) {
       for(int jatom=iatom+1; jatom<natoms; jatom++) {
         auto distance=positions[iatom]-positions[jatom];
@@ -278,25 +280,32 @@ private:
     engconf=0.0;
     for(int i=0; i<natoms; i++)for(int k=0; k<3; k++) forces[i][k]=0.0;
     double engcorrection=4.0*(1.0/pow(forcecutoff2,6.0)-1.0/pow(forcecutoff2,3)); // energy necessary shift the potential avoiding discontinuities
-    for(int iatom=0; iatom<natoms-1; iatom++) {
-      for(int jlist=0;jlist<list[iatom].size();jlist++){
-        const int jatom=list[iatom][jlist];
-        auto distance=positions[iatom]-positions[jatom];
-        Vector distance_pbc;    // minimum-image distance of the two atoms
-        pbc(cell,distance,distance_pbc);
-        auto distance_pbc2=modulo2(distance_pbc);   // squared minimum-image distance
+#   pragma omp parallel num_threads(OpenMP::getNumThreads())
+    {
+      std::vector<Vector> omp_forces(forces.size());
+      #pragma omp for reduction(+:engconf) schedule(static,1) nowait
+      for(int iatom=0; iatom<natoms-1; iatom++) {
+        for(int jlist=0;jlist<list[iatom].size();jlist++){
+          const int jatom=list[iatom][jlist];
+          auto distance=positions[iatom]-positions[jatom];
+          Vector distance_pbc;    // minimum-image distance of the two atoms
+          pbc(cell,distance,distance_pbc);
+          auto distance_pbc2=modulo2(distance_pbc);   // squared minimum-image distance
 // if the interparticle distance is larger than the cutoff, skip
-        if(distance_pbc2>forcecutoff2) continue;
-        auto distance_pbc6=distance_pbc2*distance_pbc2*distance_pbc2;
-        auto distance_pbc8=distance_pbc6*distance_pbc2;
-        auto distance_pbc12=distance_pbc6*distance_pbc6;
-        auto distance_pbc14=distance_pbc12*distance_pbc2;
-        engconf+=4.0*(1.0/distance_pbc12 - 1.0/distance_pbc6) - engcorrection;
-        auto f=2.0*distance_pbc*4.0*(6.0/distance_pbc14-3.0/distance_pbc8);
-// same force on the two atoms, with opposite sign:
-        forces[iatom]+=f;
-        forces[jatom]-=f;
+          if(distance_pbc2>forcecutoff2) continue;
+          auto distance_pbcm2=1.0/distance_pbc2;
+          auto distance_pbcm6=distance_pbcm2*distance_pbcm2*distance_pbcm2;
+          auto distance_pbcm8=distance_pbcm6*distance_pbcm2;
+          auto distance_pbcm12=distance_pbcm6*distance_pbcm6;
+          auto distance_pbcm14=distance_pbcm12*distance_pbcm2;
+          engconf+=4.0*(distance_pbcm12 - distance_pbcm6) - engcorrection;
+          auto f=24.0*distance_pbc*(2.0*distance_pbcm14-distance_pbcm8);
+          omp_forces[iatom]+=f;
+          omp_forces[jatom]-=f;
+        }
       }
+#     pragma omp critical
+      for(unsigned i=0; i<omp_forces.size(); i++) forces[i]+=omp_forces[i];
     }
   }
 
