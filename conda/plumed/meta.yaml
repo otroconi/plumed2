@@ -1,5 +1,7 @@
 {% set name = "plumed" %}
 {% set version = environ['VERSION'] %}
+{% set build = 1 %}
+{% set mpi = mpi or "nompi" %}
 
 package:
   name: {{ name|lower }}
@@ -9,12 +11,24 @@ source:
   path: ../..
 
 build:
-  number: 0
-  skip: True  # [win]
+  number: {{ build }}
+  skip: true  # [win]
 # Most programs should link libplumedWrapper.a so that libplumedKernel.so will be loaded
 # with dlopen. There is no need for pinning thus.
 # Programs linking libplumed.so should pin to min_pin='x.x', max_pin='x'.
 # Programs linking libplumedKernel.so should pin to min_pin='x.x.x'. max_pin='x.x.x'.
+
+  {% if mpi != "nompi" %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}
+
+  {% if mpi != "nompi" %}
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
 
 requirements:
   build:
@@ -25,6 +39,7 @@ requirements:
 # xxd is provided by package vim and used during build
     - vim  # [linux]
   host:
+    - {{ mpi }}  # [mpi != "nompi"]
     - fftw
     - gsl
     - libblas
@@ -33,28 +48,30 @@ requirements:
     - xdrfile
     - zlib
   run:
+    - {{ mpi }}  # [mpi != "nompi"]
     - gawk
     - llvm-openmp  # [osx]
 
 test:
   commands:
+    - export OMPI_MCA_plm=isolated  # [mpi == "openmpi" and linux]
+    - export OMPI_MCA_btl_vader_single_copy_mechanism=none  # [mpi == "openmpi" and linux]
+    - export OMPI_MCA_rmaps_base_oversubscribe=yes  # [mpi == "openmpi" and linux]
     - plumed info --root
     - plumed info --long-version
     - plumed-patch -h
-    - plumed config has external_blas external_lapack fftw gsl xdrfile zlib
+    - plumed config has asmjit external_blas external_lapack fftw gsl xdrfile zlib
     - $PREFIX/lib/plumed/plumed-runtime -h
     - test -f $PREFIX/lib/libplumed$SHLIB_EXT
     - test -f $PREFIX/lib/libplumedWrapper.a
     - test -f $PREFIX/lib/libplumedKernel$SHLIB_EXT
-    - conda inspect linkages -p $PREFIX $PKG_NAME
-    - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
 
 about:
   home: http://www.plumed.org/
   license: LGPL-3.0
   license_family: GPL
   license_file: COPYING.LESSER
-  summary: 'Free energy calculations in molecular systems'
+  summary: Free energy calculations in molecular systems
   description: |
     PLUMED is an open source library for free energy calculations in
     molecular systems which works together with some of the most
