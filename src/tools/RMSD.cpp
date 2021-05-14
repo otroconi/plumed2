@@ -98,7 +98,6 @@ void RMSD::setReference(const std::vector<Vector> & reference) {
   align.resize(n,1.0/n);
   displace.resize(n,1.0/n);
   for(unsigned i=0; i<n; i++) reference_center+=this->reference[i]*align[i];
-  #pragma omp simd
   for(unsigned i=0; i<n; i++) this->reference[i]-=reference_center;
   reference_center_is_calculated=true;
   reference_center_is_removed=true;
@@ -118,11 +117,9 @@ void RMSD::setAlign(const std::vector<double> & align, bool normalize_weights, b
     for(unsigned i=0; i<n; i++) w+=this->align[i];
     if(w>epsilon) {
       double inv=1.0/w;
-      #pragma omp simd
       for(unsigned i=0; i<n; i++) this->align[i]*=inv;
     } else {
       double inv=1.0/n;
-      #pragma omp simd
       for(unsigned i=0; i<n; i++) this->align[i]=inv;
     }
   }
@@ -157,11 +154,9 @@ void RMSD::setDisplace(const std::vector<double> & displace, bool normalize_weig
     for(unsigned i=0; i<n; i++) w+=this->displace[i];
     if(w>epsilon) {
       double inv=1.0/w;
-      #pragma omp simd
       for(unsigned i=0; i<n; i++) this->displace[i]*=inv;
     } else {
       double inv=1.0/n;
-      #pragma omp simd
       for(unsigned i=0; i<n; i++) this->displace[i]=inv;
     }
   }
@@ -1089,7 +1084,6 @@ void RMSDCoreData::doCoreCalc(bool safe,bool alEqDis, bool only_rotation) {
 
   // calculate rotation matrix derivatives and components distances needed for components only when align!=displacement
   if(!alEqDis)ddist_drotation.zero();
-  #pragma omp simd
   for(unsigned iat=0; iat<n; iat++) {
     // components differences: this is useful externally
     d[iat]=positions[iat]-cp - matmul(rotation,reference[iat]-cr);
@@ -1152,7 +1146,6 @@ void RMSDCoreData::doCoreCalcWithCloseStructure(bool safe,bool alEqDis, Tensor &
 
   Tensor rotation = matmul(rotationPosClose, rotationRefClose);
 
-  #pragma omp simd
   for (unsigned iat=0; iat<natoms; iat++) {
     d[iat] = positions[iat] - cp - matmul(rotation, reference[iat]-cr);
   }
