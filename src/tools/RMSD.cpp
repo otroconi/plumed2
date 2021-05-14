@@ -115,7 +115,6 @@ void RMSD::setAlign(const std::vector<double> & align, bool normalize_weights, b
   this->align=align;
   if(normalize_weights) {
     double w=0.0;
-    #pragma omp simd reduction(+:w)
     for(unsigned i=0; i<n; i++) w+=this->align[i];
     if(w>epsilon) {
       double inv=1.0/w;
@@ -155,7 +154,6 @@ void RMSD::setDisplace(const std::vector<double> & displace, bool normalize_weig
   this->displace=displace;
   if(normalize_weights) {
     double w=0.0;
-    #pragma omp simd reduction(+:w)
     for(unsigned i=0; i<n; i++) w+=this->displace[i];
     if(w>epsilon) {
       double inv=1.0/w;
@@ -1122,7 +1120,6 @@ double RMSDCoreData::getDistance( bool squared) {
   if(safe || !alEqDis) localDist=0.0;
   else
     localDist=eigenvals[0]+rr00+rr11;
-  #pragma omp simd reduction(+:localDist)
   for(unsigned iat=0; iat<n; iat++) {
     if(alEqDis) {
       if(safe) localDist+=align[iat]*modulo2(d[iat]);
