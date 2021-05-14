@@ -98,7 +98,6 @@ void RMSD::setReference(const vector<Vector> & reference) {
   align.resize(n,1.0/n);
   displace.resize(n,1.0/n);
   for(unsigned i=0; i<n; i++) reference_center+=this->reference[i]*align[i];
-  #pragma omp simd
   for(unsigned i=0; i<n; i++) this->reference[i]-=reference_center;
   reference_center_is_calculated=true;
   reference_center_is_removed=true;
@@ -115,15 +114,12 @@ void RMSD::setAlign(const vector<double> & align, bool normalize_weights, bool r
   this->align=align;
   if(normalize_weights) {
     double w=0.0;
-    #pragma omp simd reduction(+:w)
     for(unsigned i=0; i<n; i++) w+=this->align[i];
     if(w>epsilon) {
       double inv=1.0/w;
-      #pragma omp simd
       for(unsigned i=0; i<n; i++) this->align[i]*=inv;
     } else {
       double inv=1.0/n;
-      #pragma omp simd
       for(unsigned i=0; i<n; i++) this->align[i]=inv;
     }
   }
@@ -155,15 +151,12 @@ void RMSD::setDisplace(const vector<double> & displace, bool normalize_weights) 
   this->displace=displace;
   if(normalize_weights) {
     double w=0.0;
-    #pragma omp simd reduction(+:w)
     for(unsigned i=0; i<n; i++) w+=this->displace[i];
     if(w>epsilon) {
       double inv=1.0/w;
-      #pragma omp simd
       for(unsigned i=0; i<n; i++) this->displace[i]*=inv;
     } else {
       double inv=1.0/n;
-      #pragma omp simd
       for(unsigned i=0; i<n; i++) this->displace[i]=inv;
     }
   }
@@ -1091,7 +1084,6 @@ void RMSDCoreData::doCoreCalc(bool safe,bool alEqDis, bool only_rotation) {
 
   // calculate rotation matrix derivatives and components distances needed for components only when align!=displacement
   if(!alEqDis)ddist_drotation.zero();
-  #pragma omp simd
   for(unsigned iat=0; iat<n; iat++) {
     // components differences: this is useful externally
     d[iat]=positions[iat]-cp - matmul(rotation,reference[iat]-cr);
@@ -1122,7 +1114,6 @@ double RMSDCoreData::getDistance( bool squared) {
   if(safe || !alEqDis) localDist=0.0;
   else
     localDist=eigenvals[0]+rr00+rr11;
-  #pragma omp simd reduction(+:localDist)
   for(unsigned iat=0; iat<n; iat++) {
     if(alEqDis) {
       if(safe) localDist+=align[iat]*modulo2(d[iat]);
