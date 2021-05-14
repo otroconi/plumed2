@@ -288,16 +288,13 @@ void PathMSDBase::calculate() {
   val_z_path->set(-(1./lambda)*std::log(partition));
   for(unsigned j=0; j<s_path.size(); j++) {
     // clean up
-    #pragma omp simd
     for(unsigned i=0; i< derivs_s.size(); i++) {derivs_s[i].zero();}
     // do the derivative
     for(const auto & it : imgVec) {
       double expval=it.similarity;
       tmp=lambda*expval*(s_path[j]-it.property[j])/partition;
-      #pragma omp simd
       for(unsigned i=0; i< derivs_s.size(); i++) { derivs_s[i]+=tmp*it.distder[i] ;}
       if(j==0) {
-        #pragma omp simd
         for(unsigned i=0; i< derivs_z.size(); i++) { derivs_z[i]+=it.distder[i]*expval/partition;}
       }
     }

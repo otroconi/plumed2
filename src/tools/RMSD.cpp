@@ -1155,7 +1155,6 @@ void RMSDCoreData::doCoreCalcWithCloseStructure(bool safe,bool alEqDis, Tensor &
 
   Tensor rotation = matmul(rotationPosClose, rotationRefClose);
 
-  #pragma omp simd
   for (unsigned iat=0; iat<natoms; iat++) {
     d[iat] = positions[iat] - cp - matmul(rotation, reference[iat]-cr);
   }
@@ -1206,7 +1205,6 @@ std::vector<Vector> RMSDCoreData::getDDistanceDPositions() {
   }
 
   if(!alEqDis)
-    #pragma omp simd
     for(unsigned iat=0; iat<n; iat++) {derivatives[iat]= prefactor*(derivatives[iat]+(ddist_dcpositions-csum)*align[iat]); }
 
   return derivatives;
@@ -1249,7 +1247,6 @@ std::vector<Vector>  RMSDCoreData::getDDistanceDReference() {
   }
 
   if(!alEqDis)
-    #pragma omp simd
     for(unsigned iat=0; iat<n; iat++) {derivatives[iat]= prefactor*(derivatives[iat]+(ddist_dcreference-csum)*align[iat]);}
 
   return derivatives;
