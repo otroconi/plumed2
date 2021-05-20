@@ -1,0 +1,26 @@
+
+# initial coordinates:
+inputfile start.xyz
+# final coordinates:
+outputfile output.xyz
+# thermostat applies this temperature:
+temperature 10.0
+# integration time step
+tstep 0.005
+# friction for Langevin thermostat:
+friction 1
+# cutoff for forces. It is equal to the minimum of the LJ potential
+forcecutoff 2.5*2^(1/6) # simple math is allowed here
+# neighbor list cutoff
+listcutoff  2.5*3
+# sigma. The minimum is at sigma*2^(1/6)
+sigma 2.5
+# length of simulation
+nstep 1000
+# write trajectory with this frequency
+nconfig 10 trajectory.xyz
+# write statistics with this frequency
+nstat   1000 energies.dat
+# columns in energies.dat:
+# step, time, instantaneous temperature, potential energy, total energy, total energy (incl. thermostat)
+

@@ -30,6 +30,10 @@
 #include <cmath>
 #include <vector>
 #include <memory>
+#include <fstream>
+#include <iostream>
+#include "tools/Angle.h"
+#include "tools/Torsion.h"
 
 using namespace std;
 
@@ -87,6 +91,17 @@ class SimpleMD:
   int write_statistics_last_time_reopened;
   FILE* write_statistics_fp;
 
+  //To include bonds effects
+  std::vector<double> bonddo;
+  std::vector<int> Bpair; 
+
+  //To include angle effects
+  std::vector<double> thetao;
+  std::vector<int> Atrip; 
+
+  //To include torsion effects
+  std::vector<double> phio;
+  std::vector<int> Tquad;
 
 public:
   static void registerKeywords( Keywords& keys ) {
@@ -106,6 +121,8 @@ public:
     keys.add("compulsory","idum","0","The random number seed");
     keys.add("compulsory","ndim","3","The dimensionality of the system (some interesting LJ clusters are two dimensional)");
     keys.add("compulsory","wrapatoms","false","If true, atomic coordinates are written wrapped in minimal cell");
+
+//    keys.add("option","bondsfile","Bond effects added to LJ");
   }
 
   explicit SimpleMD( const CLToolOptions& co ) :
@@ -193,6 +210,8 @@ private:
     parse("wrapatoms",w);
     wrapatoms=false;
     if(w.length()>0 && (w[0]=='T' || w[0]=='t')) wrapatoms=true;
+
+//    parse("bondsfile", bondsfile);
   }
 
   void read_natoms(const string & inputfile,int & natoms) {
@@ -310,12 +329,106 @@ private:
           omp_forces[jatom]-=f;
         }
       }
+//Adding bonds effects
+#     pragma omp for reduction(+: engconf) schedule(static, 1) nowait
+      for (int i=0; i < bonddo.size(); ++i) {
+      	   int index1 = 2*i;
+	   int index2 = index1 + 1;
+	   int atom1  = Bpair[index1] - 1;
+	   int atom2  = Bpair[index2] - 1;
+
+	   auto r21 = positions[atom2] - positions[atom1];
+	   Vector r21_pbc; //OJO PLUMED Vector NO std::vector
+	   pbc(cell, r21, r21_pbc);
+
+	   const double r = r21_pbc.modulo();
+	   const double rdo = r - bonddo[i];
+
+	   const double KAPPAB = 1000.0; //KAPPA bonds effect
+
+	   engconf += 0.5 * KAPPAB * rdo * rdo;
+	   auto f   = KAPPAB * (rdo/r) * r21_pbc;
+
+	   omp_forces[atom1] += f;
+	   omp_forces[atom2] -= f;	   
+      }
+
+//Adding angles effects
+#     pragma omp for reduction(+: engconf) schedule(static, 1) nowait
+      for (int i=0; i < thetao.size(); ++i) {
+      	   int index1 = 3*i;
+	   int index2 = index1 + 1;
+	   int index3 = index1 + 2;
+	   int atom1a  = Atrip[index1] - 1; //atom1a = atom1 of angle effect
+	   int atom2a  = Atrip[index2] - 1; //atom2a = atom2 of angle effect
+	   int atom3a  = Atrip[index3] - 1; //atom3a = atom3 of angle effect
+
+	   auto r21a = positions[atom2a] - positions[atom1a];
+	   auto r23a = positions[atom2a] - positions[atom3a];
+
+	   Vector r21a_pbc, r23a_pbc; //OJO PLUMED Vector NO std::vector
+	   pbc(cell, r21a, r21a_pbc);
+	   pbc(cell, r23a, r23a_pbc);
+
+	   Angle theta_plmd;
+	   double theta = theta_plmd.compute(r21a, r23a, r21a_pbc, r23a_pbc);
+	   const double deltatheta = theta - thetao[i];
+
+	   const double KAPPAA = 1000.0; //KAPPA angle effect
+
+	   engconf += 0.5 * KAPPAA * deltatheta * deltatheta;
+	   auto f21   = KAPPAA * deltatheta * r21a_pbc;
+	   auto f23   = KAPPAA * deltatheta * r23a_pbc;
+
+	   omp_forces[atom1a] += f21;
+	   omp_forces[atom2a] -= f21 + f23;
+	   omp_forces[atom3a] += f23;	   
+      }
+        
+//Adding torsions effects
+#     pragma omp for reduction(+: engconf) schedule(static, 1) nowait
+      for (int i=0; i < phio.size(); ++i) {
+      	   int index1t = 4*i;
+	   int index2t = index1t + 1;
+	   int index3t = index1t + 2;
+	   int index4t = index1t + 3;
+	   int atom1t  = Tquad[index1t] - 1; //atom1t = atom1 of torsion effect
+	   int atom2t  = Tquad[index2t] - 1; //atom2t = atom2 of torsion effect
+	   int atom3t  = Tquad[index3t] - 1; //atom3t = atom3 of torsion effect
+	   int atom4t  = Tquad[index4t] - 1; //atom4t = atom4 of torsion effect
+
+	   auto r12t = positions[atom1t] - positions[atom2t];
+	   auto r23t = positions[atom2t] - positions[atom3t];
+	   auto r34t = positions[atom3t] - positions[atom4t];
+
+	   Vector r12t_pbc, r23t_pbc, r34t_pbc; //OJO PLUMED Vector NO std::vector
+	   pbc(cell, r12t, r12t_pbc);
+	   pbc(cell, r23t, r23t_pbc);
+	   pbc(cell, r34t, r34t_pbc);
+
+	   Torsion phi_plmd;
+	   double phi = phi_plmd.compute(r12t, r23t, r34t, r12t_pbc, r23t_pbc, r34t_pbc);
+	   const double deltaphi = phi - phio[i];
+
+	   const double KAPPAT = 100.0; //KAPPA torsion effect
+
+	   engconf += 0.5 * KAPPAT * ( 1.0 + cos(deltaphi) );
+	   auto f12   =  0.5 * KAPPAT * sin(deltaphi) * r12t_pbc;
+	   auto f23   =  0.5 * KAPPAT * sin(deltaphi) * r23t_pbc;
+	   auto f34   =  0.5 * KAPPAT * sin(deltaphi) * r34t_pbc;
+
+	   omp_forces[atom1t] -= f12;
+	   omp_forces[atom2t] +=  f12 - f23;
+	   omp_forces[atom3t] +=  f23 - f34;
+	   omp_forces[atom4t] += f34;
+      }
+
 #     pragma omp critical
       for(unsigned i=0; i<omp_forces.size(); i++) forces[i]+=omp_forces[i];
     }
     }
 
-  }
+//  }
 
   void compute_engkin(const int natoms,const vector<double>& masses,const vector<Vector>& velocities,double & engkin)
   {
@@ -451,6 +564,7 @@ private:
 
     std::unique_ptr<PlumedMain> plumed;
 
+
 // Commenting the next line it is possible to switch-off plumed
     plumed.reset(new PLMD::PlumedMain);
 
@@ -498,6 +612,152 @@ private:
     forces.resize(natoms);
     masses.resize(natoms);
     list.resize(natoms);
+
+//Reading the files Bpair.dat and bonddo.dat file and store the parameters in order to include bonds effects
+
+    //Bpair.dat
+    ifstream inbp("preprocdata/Bpair.dat");
+    string line;
+
+    if (!inbp) {
+		cerr << "Cannot open the file: Bpair.dat" << endl;
+		return false;
+    }
+
+    while (getline(inbp, line)) {
+	if (line.size() > 0)
+		Bpair.push_back(std::stoi(line));
+    }
+    inbp.close();
+
+    //bonddo.dat
+    ifstream inbd("preprocdata/bonddo.dat");
+
+    if (!inbd) {
+		cerr << "Cannot open the file: bonddo.dat" << endl;
+		return false;
+    }
+
+    while (getline(inbd, line)) {
+	if (line.size() > 0)
+		bonddo.push_back(std::stod(line));
+    }
+    inbd.close();
+
+//Reading the files Atrip.dat and thetao.dat file and store the parameters in order to include angles effects
+
+    //Atrip.dat
+    ifstream inat("preprocdata/Atrip.dat");
+    string line2;
+
+    if (!inat) {
+		cerr << "Cannot open the file: Atrip.dat" << endl;
+		return false;
+    }
+
+    while (getline(inat, line2)) {
+	if (line2.size() > 0)
+		Atrip.push_back(std::stoi(line2));
+    }
+    inat.close();
+
+    //thetao.dat
+    ifstream inatheta("preprocdata/thetao.dat");
+
+    if (!inatheta) {
+		cerr << "Cannot open the file: theta.dat" << endl;
+		return false;
+    }
+
+    while (getline(inatheta, line2)) {
+	if (line2.size() > 0)
+		thetao.push_back(std::stod(line2));
+    }
+    inatheta.close();
+
+//Reading the files Tquad.dat and phio.dat file and store the parameters in order to include torsions effects
+
+    //Tquad.dat
+    ifstream intq("preprocdata/Tquad.dat");
+    string line3;
+
+    if (!intq) {
+		cerr << "Cannot open the file: Tquad.dat" << endl;
+		return false;
+    }
+
+    while (getline(intq, line3)) {
+	if (line3.size() > 0)
+		Tquad.push_back(std::stoi(line3));
+    }
+    intq.close();
+
+    //phio.dat
+    ifstream intphi("preprocdata/phio.dat");
+
+    if (!intphi) {
+		cerr << "Cannot open the file: phio.dat" << endl;
+		return false;
+    }
+
+    while (getline(intphi, line3)) {
+	if (line3.size() > 0)
+		phio.push_back(std::stod(line3));
+    }
+    intphi.close();
+
+/*    
+    for (int i=0; i < bonddo.size(); ++i){
+	cout << " " << bonddo[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
+    }
+    
+    for (int i=0; i < Bpair.size(); ++i){
+	cout << " " << Bpair[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
+    }
+
+    for (int i=0; i < Atrip.size(); ++i){
+	cout << " " << Atrip[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
+    }
+
+    for (int i=0; i < thetao.size(); ++i){
+	cout << " " << thetao[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
+    }
+
+    for (int i=0; i < Tquad.size(); ++i){
+	cout << " " << Tquad[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
+    }
+
+    for (int i=0; i < phio.size(); ++i){
+	cout << " " << phio[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
+    }
+
+    string line;
+    int k=1;
+    ifstream file("bonds.dat");
+    while (getline (file, line) ) {
+	    if (k%2 != 0) {
+		    size_t pos = line.find("=");
+		    string ATOMS=line.substr(pos+1);
+		    stringstream ss(ATOMS);
+		    while (ss.good()) {
+			    string substr;
+			    getline(ss, substr, ',');
+			    Bpair.push_back(std::stoi(substr));
+		    }
+	    } else {
+		    size_t pos = line.find("AT=");
+		    size_t p=15;
+		    string at=line.substr(pos+3,p);
+		    do_b.push_back(std::stod(at,&p));
+
+	    }
+	    ++k;
+    }
+    file.close();
+
+    cout << do_b.size() << " " << endl;
+*/
+
 
 // masses are hard-coded to 1
     for(int i=0; i<natoms; ++i) masses[i]=1.0;
