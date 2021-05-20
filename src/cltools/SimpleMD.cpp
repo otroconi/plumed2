@@ -436,8 +436,8 @@ private:
       for (int i=0; i < pairsdo.size(); ++i) {
       	   int index1p = 2*i;
 	   int index2p = index1p + 1;
-	   int atom1p  = Ppairs[index1p] - 1;
-	   int atom2p  = Ppairs[index2p] - 1;
+	   int atom1p  = Ppairs[index1p] - 1; //atom1p = atom1 for pairs effect
+	   int atom2p  = Ppairs[index2p] - 1; //atom2p = atom2 for pairs effect
 
 	   auto r21p = positions[atom2p] - positions[atom1p];
 	   Vector r21p_pbc; //OJO PLUMED Vector NO std::vector
