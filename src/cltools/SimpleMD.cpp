@@ -103,6 +103,10 @@ class SimpleMD:
   std::vector<double> phio;
   std::vector<int> Tquad;
 
+  //To include pairs effects
+  std::vector<double> pairsdo;
+  std::vector<int> Ppairs;
+
 public:
   static void registerKeywords( Keywords& keys ) {
     keys.add("compulsory","nstep","The number of steps of dynamics you want to run");
@@ -329,6 +333,7 @@ private:
           omp_forces[jatom]-=f;
         }
       }
+      
 //Adding bonds effects
 #     pragma omp for reduction(+: engconf) schedule(static, 1) nowait
       for (int i=0; i < bonddo.size(); ++i) {
@@ -349,6 +354,7 @@ private:
 	   engconf += 0.5 * KAPPAB * rdo * rdo;
 	   auto f   = KAPPAB * (rdo/r) * r21_pbc;
 
+	   //Applying 3rd Newton law :)
 	   omp_forces[atom1] += f;
 	   omp_forces[atom2] -= f;	   
       }
@@ -380,6 +386,7 @@ private:
 	   auto f21   = KAPPAA * deltatheta * r21a_pbc;
 	   auto f23   = KAPPAA * deltatheta * r23a_pbc;
 
+	   //Applying 3rd Newton law :)
 	   omp_forces[atom1a] += f21;
 	   omp_forces[atom2a] -= f21 + f23;
 	   omp_forces[atom3a] += f23;	   
@@ -413,14 +420,48 @@ private:
 	   const double KAPPAT = 100.0; //KAPPA torsion effect
 
 	   engconf += 0.5 * KAPPAT * ( 1.0 + cos(deltaphi) );
-	   auto f12   =  0.5 * KAPPAT * sin(deltaphi) * r12t_pbc;
+	   auto f12   =  0.5 * KAPPAT * sin(deltaphi) * r12t_pbc; //OJO force = -dU/dr = ..- 0.5*-sin(deltaphi)*...
 	   auto f23   =  0.5 * KAPPAT * sin(deltaphi) * r23t_pbc;
 	   auto f34   =  0.5 * KAPPAT * sin(deltaphi) * r34t_pbc;
 
+	   //Applying 3rd Newton law :)
 	   omp_forces[atom1t] -= f12;
 	   omp_forces[atom2t] +=  f12 - f23;
 	   omp_forces[atom3t] +=  f23 - f34;
 	   omp_forces[atom4t] += f34;
+      }
+
+//Adding pairs effects
+#     pragma omp for reduction(+: engconf) schedule(static, 1) nowait
+      for (int i=0; i < pairsdo.size(); ++i) {
+      	   int index1p = 2*i;
+	   int index2p = index1p + 1;
+	   int atom1p  = Ppairs[index1p] - 1;
+	   int atom2p  = Ppairs[index2p] - 1;
+
+	   auto r21p = positions[atom2p] - positions[atom1p];
+	   Vector r21p_pbc; //OJO PLUMED Vector NO std::vector
+	   pbc(cell, r21p, r21p_pbc);
+
+	   const double rp = r21p.modulo();
+	   const double rdop = rp - pairsdo[i];
+
+	   const double rdop2 = rdop * rdop;
+	   const double rdop3 = rdop2 * rdop;
+	   const double rdop5 = rdop3 * rdop2;
+	   const double rdop6 = rdop3 * rdop3;
+
+	   const double invrdop = 1.0 / (1.0 + rdop6);
+
+	   const double KAPPAP = 20.0; //KAPPA pairs effect
+
+	   engconf += (rdop > 0.0 ? - KAPPAP * invrdop : -KAPPAP); //if rdop < 0.0 ==> U = -ctte = -KAPPAP ==> f->0.0
+	   auto f   = ( rdop > 0.0 ? - 6.0 * KAPPAP * rdop5 * invrdop * invrdop : 0.0) * (r21p/rp); //OJO:this is dU/dr_{1,\alpha}
+
+	   //Applying 3rd Newton law :)
+	   omp_forces[atom1p] -= f; //f12 = -dU/dr_{1,\alpha} force that 1 feels due to 2
+	   omp_forces[atom2p] += f; //f21 = -f12 force that 2 feels due to 1 (3rd Newton law)	 
+	    
       }
 
 #     pragma omp critical
@@ -613,7 +654,7 @@ private:
     masses.resize(natoms);
     list.resize(natoms);
 
-//Reading the files Bpair.dat and bonddo.dat file and store the parameters in order to include bonds effects
+//Reading the files Bpair.dat and bonddo.dat and store the parameters in order to include bonds effects
 
     //Bpair.dat
     ifstream inbp("preprocdata/Bpair.dat");
@@ -644,7 +685,7 @@ private:
     }
     inbd.close();
 
-//Reading the files Atrip.dat and thetao.dat file and store the parameters in order to include angles effects
+//Reading the files Atrip.dat and thetao.dat and store the parameters in order to include angles effects
 
     //Atrip.dat
     ifstream inat("preprocdata/Atrip.dat");
@@ -675,7 +716,7 @@ private:
     }
     inatheta.close();
 
-//Reading the files Tquad.dat and phio.dat file and store the parameters in order to include torsions effects
+//Reading the files Tquad.dat and phio.dat and store the parameters in order to include torsions effects
 
     //Tquad.dat
     ifstream intq("preprocdata/Tquad.dat");
@@ -706,6 +747,36 @@ private:
     }
     intphi.close();
 
+//Reading the files Ppairs.dat and pairsdo.dat and store the parameters in order to include pairs effects
+
+    //Ppairs.dat
+    ifstream inpp("preprocdata/Ppairs.dat");
+    string line4;
+
+    if (!inpp) {
+		cerr << "Cannot open the file: Ppairs.dat" << endl;
+		return false;
+    }
+
+    while (getline(inpp, line4)) {
+	if (line4.size() > 0)
+		Ppairs.push_back(std::stoi(line4));
+    }
+    inpp.close();
+
+    //pairsdo.dat
+    ifstream inpd("preprocdata/pairsdo.dat");
+
+    if (!inpd) {
+		cerr << "Cannot open the file: pairsdo.dat" << endl;
+		return false;
+    }
+
+    while (getline(inpd, line4)) {
+	if (line4.size() > 0)
+		pairsdo.push_back(std::stod(line4));
+    }
+    inpd.close();
 /*    
     for (int i=0; i < bonddo.size(); ++i){
 	cout << " " << bonddo[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
@@ -731,6 +802,14 @@ private:
 	cout << " " << phio[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
     }
 
+    for (int i=0; i < pairsdo.size(); ++i){
+	cout << " " << pairsdo[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
+    }
+    
+    for (int i=0; i < Ppairs.size(); ++i){
+	cout << " " << Ppairs[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
+    }
+    
     string line;
     int k=1;
     ifstream file("bonds.dat");
