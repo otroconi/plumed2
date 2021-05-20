@@ -419,10 +419,10 @@ private:
 
 	   const double KAPPAT = 100.0; //KAPPA torsion effect
 
-	   engconf += 0.5 * KAPPAT * ( 1.0 + cos(deltaphi) );
-	   auto f12   =  0.5 * KAPPAT * sin(deltaphi) * r12t_pbc; //OJO force = -dU/dr = ..- 0.5*(-sin(deltaphi))*...
-	   auto f23   =  0.5 * KAPPAT * sin(deltaphi) * r23t_pbc;
-	   auto f34   =  0.5 * KAPPAT * sin(deltaphi) * r34t_pbc;
+	   engconf += 0.5 * KAPPAT * ( 1.0 + cos(deltaphi) ); //dU/dr = 0.5*KAPPAT*(-sin(deltaphi))*...
+	   auto f12   =  0.5 * KAPPAT * sin(deltaphi) * r12t_pbc; //force that 2 feels due to 1 
+	   auto f23   =  0.5 * KAPPAT * sin(deltaphi) * r23t_pbc; //force that 3 feels due to 2
+	   auto f34   =  0.5 * KAPPAT * sin(deltaphi) * r34t_pbc; //force that 4 feels due to3
 
 	   //Applying 3rd Newton law :)
 	   omp_forces[atom1t] -= f12;
@@ -810,31 +810,6 @@ private:
 	cout << " " << Ppairs[i] << endl;   //Uncoment this if you want to be sure you are reading the file correctly
     }
     
-    string line;
-    int k=1;
-    ifstream file("bonds.dat");
-    while (getline (file, line) ) {
-	    if (k%2 != 0) {
-		    size_t pos = line.find("=");
-		    string ATOMS=line.substr(pos+1);
-		    stringstream ss(ATOMS);
-		    while (ss.good()) {
-			    string substr;
-			    getline(ss, substr, ',');
-			    Bpair.push_back(std::stoi(substr));
-		    }
-	    } else {
-		    size_t pos = line.find("AT=");
-		    size_t p=15;
-		    string at=line.substr(pos+3,p);
-		    do_b.push_back(std::stod(at,&p));
-
-	    }
-	    ++k;
-    }
-    file.close();
-
-    cout << do_b.size() << " " << endl;
 */
 
 
