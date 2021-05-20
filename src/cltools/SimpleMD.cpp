@@ -339,8 +339,8 @@ private:
       for (int i=0; i < bonddo.size(); ++i) {
       	   int index1 = 2*i;
 	   int index2 = index1 + 1;
-	   int atom1  = Bpair[index1] - 1;
-	   int atom2  = Bpair[index2] - 1;
+	   int atom1  = Bpair[index1] - 1; //OJO: -1 is because the plumed syntax starts to count atoms from 1, but
+	   int atom2  = Bpair[index2] - 1; //in cpp we need to start from 0
 
 	   auto r21 = positions[atom2] - positions[atom1];
 	   Vector r21_pbc; //OJO PLUMED Vector NO std::vector
@@ -383,12 +383,12 @@ private:
 	   const double KAPPAA = 1000.0; //KAPPA angle effect
 
 	   engconf += 0.5 * KAPPAA * deltatheta * deltatheta;
-	   auto f21   = KAPPAA * deltatheta * r21a_pbc;
-	   auto f23   = KAPPAA * deltatheta * r23a_pbc;
+	   auto f21   = KAPPAA * deltatheta * r21a_pbc; //force that 1 feels due to 2
+	   auto f23   = KAPPAA * deltatheta * r23a_pbc; //force that 3 feels due to 2
 
 	   //Applying 3rd Newton law :)
 	   omp_forces[atom1a] += f21;
-	   omp_forces[atom2a] -= f21 + f23;
+	   omp_forces[atom2a] -= f21 + f23; //force that 2 feels due to 1 and 3 (3rd Newton law)
 	   omp_forces[atom3a] += f23;	   
       }
         
@@ -420,7 +420,7 @@ private:
 	   const double KAPPAT = 100.0; //KAPPA torsion effect
 
 	   engconf += 0.5 * KAPPAT * ( 1.0 + cos(deltaphi) );
-	   auto f12   =  0.5 * KAPPAT * sin(deltaphi) * r12t_pbc; //OJO force = -dU/dr = ..- 0.5*-sin(deltaphi)*...
+	   auto f12   =  0.5 * KAPPAT * sin(deltaphi) * r12t_pbc; //OJO force = -dU/dr = ..- 0.5*(-sin(deltaphi))*...
 	   auto f23   =  0.5 * KAPPAT * sin(deltaphi) * r23t_pbc;
 	   auto f34   =  0.5 * KAPPAT * sin(deltaphi) * r34t_pbc;
 
