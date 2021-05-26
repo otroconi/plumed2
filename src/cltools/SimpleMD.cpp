@@ -453,7 +453,7 @@ private:
 
 	   const double invrdop = 1.0 / (1.0 + rdop6);
 
-	   const double KAPPAP = 20.0; //KAPPA pairs effect
+	   const double KAPPAP = 5.0; //KAPPA pairs effect
 
 	   engconf += (rdop > 0.0 ? - KAPPAP * invrdop : -KAPPAP); //if rdop < 0.0 ==> U = -ctte = -KAPPAP ==> f->0.0
 	   auto f   = ( rdop > 0.0 ? - 6.0 * KAPPAP * rdop5 * invrdop * invrdop : 0.0) * (r21p/rp); //OJO:this is dU/dr_{1,\alpha}
@@ -657,7 +657,7 @@ private:
 //Reading the files Bpair.dat and bonddo.dat and store the parameters in order to include bonds effects
 
     //Bpair.dat
-    ifstream inbp("../../preprocdata/Bpair.dat");
+    ifstream inbp("/home/student/Documents/MHPC-2020-21/second-part/MolecularDynamics/plumed-giovannibussi-mhpcstart/plumed2/preprocdataexercise3/Bpair.dat");
     string line;
 
     if (!inbp) {
@@ -672,7 +672,7 @@ private:
     inbp.close();
 
     //bonddo.dat
-    ifstream inbd("../../preprocdata/bonddo.dat");
+    ifstream inbd("/home/student/Documents/MHPC-2020-21/second-part/MolecularDynamics/plumed-giovannibussi-mhpcstart/plumed2/preprocdataexercise3/bonddo.dat");
 
     if (!inbd) {
 		cerr << "Cannot open the file: bonddo.dat" << endl;
@@ -688,7 +688,7 @@ private:
 //Reading the files Atrip.dat and thetao.dat and store the parameters in order to include angles effects
 
     //Atrip.dat
-    ifstream inat("../../preprocdata/Atrip.dat");
+    ifstream inat("/home/student/Documents/MHPC-2020-21/second-part/MolecularDynamics/plumed-giovannibussi-mhpcstart/plumed2/preprocdataexercise3/Atrip.dat");
     string line2;
 
     if (!inat) {
@@ -703,7 +703,7 @@ private:
     inat.close();
 
     //thetao.dat
-    ifstream inatheta("../../preprocdata/thetao.dat");
+    ifstream inatheta("/home/student/Documents/MHPC-2020-21/second-part/MolecularDynamics/plumed-giovannibussi-mhpcstart/plumed2/preprocdataexercise3/thetao.dat");
 
     if (!inatheta) {
 		cerr << "Cannot open the file: theta.dat" << endl;
@@ -719,7 +719,7 @@ private:
 //Reading the files Tquad.dat and phio.dat and store the parameters in order to include torsions effects
 
     //Tquad.dat
-    ifstream intq("../../preprocdata/Tquad.dat");
+    ifstream intq("/home/student/Documents/MHPC-2020-21/second-part/MolecularDynamics/plumed-giovannibussi-mhpcstart/plumed2/preprocdataexercise3/Tquad.dat");
     string line3;
 
     if (!intq) {
@@ -734,7 +734,7 @@ private:
     intq.close();
 
     //phio.dat
-    ifstream intphi("../../preprocdata/phio.dat");
+    ifstream intphi("/home/student/Documents/MHPC-2020-21/second-part/MolecularDynamics/plumed-giovannibussi-mhpcstart/plumed2/preprocdataexercise3/phio.dat");
 
     if (!intphi) {
 		cerr << "Cannot open the file: phio.dat" << endl;
@@ -750,7 +750,7 @@ private:
 //Reading the files Ppairs.dat and pairsdo.dat and store the parameters in order to include pairs effects
 
     //Ppairs.dat
-    ifstream inpp("../../preprocdata/Ppairs.dat");
+    ifstream inpp("/home/student/Documents/MHPC-2020-21/second-part/MolecularDynamics/plumed-giovannibussi-mhpcstart/plumed2/preprocdataexercise3/Ppairs.dat");
     string line4;
 
     if (!inpp) {
@@ -765,7 +765,7 @@ private:
     inpp.close();
 
     //pairsdo.dat
-    ifstream inpd("../../preprocdata/pairsdo.dat");
+    ifstream inpd("/home/student/Documents/MHPC-2020-21/second-part/MolecularDynamics/plumed-giovannibussi-mhpcstart/plumed2/preprocdataexercise3/pairsdo.dat");
 
     if (!inpd) {
 		cerr << "Cannot open the file: pairsdo.dat" << endl;
